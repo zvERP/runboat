@@ -59,6 +59,7 @@ class BuildsDb:
             "    target_branch TEXT NOT NULL, "
             "    pr INTEGER, "
             "    git_commit TEXT NOT NULL, "
+            "    location TEXT, "
             "    desired_replicas INTEGER NOT NULL,"
             "    status TEXT NOT NULL, "
             "    init_status TEXT NOT NULL, "
@@ -117,13 +118,14 @@ class BuildsDb:
                 "    target_branch,"
                 "    pr,"
                 "    git_commit,"
+                "    location,"
                 "    desired_replicas,"
                 "    status,"
                 "    init_status, "
                 "    last_scaled, "
                 "    created"
                 ") "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     build.name,
                     build.deployment_name,
@@ -131,6 +133,7 @@ class BuildsDb:
                     build.commit_info.target_branch,
                     build.commit_info.pr,
                     build.commit_info.git_commit,
+                    build.location,
                     build.desired_replicas,
                     build.status,
                     build.init_status,

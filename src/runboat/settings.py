@@ -1,6 +1,7 @@
+import hashlib
 import re
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,39 @@ class BuildSettings(BaseModel):
     secret_env: dict[str, str] = {}
     template_vars: dict[str, str] = {}
     kubefiles_path: Annotated[Path | None, BeforeValidator(validate_path)] = None
+
+
+class BuildLocation(BaseModel):
+    """A PostgreSQL endpoint and scheduling domain for a group of builds."""
+
+    name: str
+    node_selector: dict[str, str]
+    env: dict[str, str]
+    weight: int = 1
+
+    @field_validator("name")
+    def validate_name(cls, value: str) -> str:
+        if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", value):
+            raise ValueError("Build location name must be a DNS label.")
+        return value
+
+    @field_validator("node_selector")
+    def validate_node_selector(cls, value: dict[str, str]) -> dict[str, str]:
+        if not value:
+            raise ValueError("Build location node selector cannot be empty.")
+        return value
+
+    @field_validator("env")
+    def validate_env(cls, value: dict[str, str]) -> dict[str, str]:
+        if not value.get("PGHOST"):
+            raise ValueError("Build location env must define PGHOST.")
+        return value
+
+    @field_validator("weight")
+    def validate_weight(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("Build location weight must be greater than zero.")
+        return value
 
 
 class RepoSettings(BaseModel):
@@ -58,6 +92,11 @@ class Settings(BaseSettings):
     build_namespace: str
     # The wildcard domain where the builds will be reacheable.
     build_domain: str
+    # The URL scheme used to expose builds.
+    build_scheme: Literal["http", "https"] = "http"
+    # Ingress defaults applied automatically to every Odoo build.
+    build_ingress_class_name: str | None = "nginx"
+    build_tls_secret_name: str | None = "wildcard-runboat-tls"
     # A dictionary of environment variables to set in the build container and jobs.
     build_env: dict[str, str] = {}
     # A dictionary of secret environment variables to set in the build container and
@@ -66,6 +105,10 @@ class Settings(BaseSettings):
     # A dictionary of variables to be set in the jinja rendering context for the
     # kubefiles.
     build_template_vars: dict[str, str] = {}
+    # PostgreSQL endpoints and scheduling domains. New builds are assigned to one
+    # location using a stable weighted hash. An empty list preserves the legacy global
+    # PGHOST behaviour.
+    build_locations: list[BuildLocation] = []
     # The path of the default kubefiles to be used.
     build_default_kubefiles_path: Annotated[
         Path | None, BeforeValidator(validate_path)
@@ -92,6 +135,36 @@ class Settings(BaseSettings):
     # Set to true if there is no cleanup job, and merely deleting the resources
     # is enough.
     no_cleanup_job: bool = False
+
+    @field_validator("build_locations")
+    def validate_build_locations(
+        cls, locations: list[BuildLocation]
+    ) -> list[BuildLocation]:
+        names = [location.name for location in locations]
+        if len(names) != len(set(names)):
+            raise ValueError("Build location names must be unique.")
+        return locations
+
+    def select_build_location(self, build_name: str) -> BuildLocation | None:
+        if not self.build_locations:
+            return None
+        slot = (
+            int.from_bytes(hashlib.sha256(build_name.encode()).digest()[:8], "big")
+            % sum(location.weight for location in self.build_locations)
+        )
+        for location in self.build_locations:
+            if slot < location.weight:
+                return location
+            slot -= location.weight
+        raise AssertionError("Could not select a build location.")
+
+    def get_build_location(self, name: str | None) -> BuildLocation | None:
+        if name is None:
+            return None
+        for location in self.build_locations:
+            if location.name == name:
+                return location
+        raise ValueError(f"Build location {name!r} is not configured.")
 
     def get_build_settings(self, repo: str, target_branch: str) -> list[BuildSettings]:
         for repo_settings in self.repos:

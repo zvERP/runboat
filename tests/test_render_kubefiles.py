@@ -1,6 +1,6 @@
 from runboat.github import CommitInfo
 from runboat.k8s import DeploymentMode, _render_kubefiles, make_deployment_vars
-from runboat.settings import BuildSettings, settings
+from runboat.settings import BuildLocation, BuildSettings, settings
 
 EXPECTED = """\
 resources:
@@ -71,6 +71,15 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: build-slug.runboat.odoo-community.org
+      - op: add
+        path: /spec/ingressClassName
+        value: nginx
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - build-slug.runboat.odoo-community.org
+            secretName: wildcard-runboat-tls
   - target:
       kind: Ingress
       name: mailhog
@@ -101,3 +110,59 @@ def test_render_kubefiles() -> None:
         assert (tmp_path / "deployment.yaml").is_file()
         kustomization = (tmp_path / "kustomization.yaml").read_text()
         assert kustomization.strip() == EXPECTED.strip()
+
+
+def test_render_kubefiles_with_tls() -> None:
+    build_settings = BuildSettings(
+        image="ghcr.io/oca/oca-ci:py3.8-odoo15.0",
+        template_vars={
+            "ingressClassName": "traefik",
+            "tlsSecretName": "custom-runboat-tls",
+        },
+    )
+    deployment_vars = make_deployment_vars(
+        mode=DeploymentMode.deployment,
+        build_name="build-name",
+        slug="build-slug",
+        commit_info=CommitInfo(
+            repo="oca/mis-builder",
+            target_branch="15.0",
+            pr=None,
+            git_commit="abcdef123456789",
+        ),
+        build_settings=build_settings,
+    )
+    with _render_kubefiles(settings.build_default_kubefiles_path, deployment_vars) as p:
+        kustomization = (p / "kustomization.yaml").read_text()
+        assert "path: /spec/ingressClassName\n        value: traefik" in kustomization
+        assert "- build-slug.runboat.odoo-community.org" in kustomization
+        assert "secretName: custom-runboat-tls" in kustomization
+
+
+def test_render_kubefiles_with_build_location() -> None:
+    build_settings = BuildSettings(image="ghcr.io/oca/oca-ci:py3.8-odoo15.0")
+    build_location = BuildLocation(
+        name="nbg1",
+        node_selector={"topology.kubernetes.io/zone": "nbg1"},
+        env={"PGHOST": "postgres-nbg1.runboat-builds-db.svc.cluster.local"},
+    )
+    deployment_vars = make_deployment_vars(
+        mode=DeploymentMode.deployment,
+        build_name="build-name",
+        slug="build-slug",
+        commit_info=CommitInfo(
+            repo="oca/mis-builder",
+            target_branch="15.0",
+            pr=None,
+            git_commit="abcdef123456789",
+        ),
+        build_settings=build_settings,
+        build_location=build_location,
+    )
+    with _render_kubefiles(settings.build_default_kubefiles_path, deployment_vars) as p:
+        kustomization = (p / "kustomization.yaml").read_text()
+        assert 'runboat/location: "nbg1"' in kustomization
+        assert "PGHOST=postgres-nbg1.runboat-builds-db.svc.cluster.local" in (
+            kustomization
+        )
+        assert '"topology.kubernetes.io/zone": "nbg1"' in kustomization

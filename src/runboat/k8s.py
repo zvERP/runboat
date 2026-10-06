@@ -20,7 +20,7 @@ from kubernetes.client.models.v1_job import V1Job
 from pydantic import BaseModel
 
 from .github import CommitInfo
-from .settings import BuildSettings, settings
+from .settings import BuildLocation, BuildSettings, settings
 from .utils import sync_to_async, sync_to_async_iterator
 
 _logger = logging.getLogger(__name__)
@@ -148,12 +148,15 @@ class DeploymentVars(BaseModel):
     build_name: str
     build_slug: str
     build_domain: str
+    build_ingress_class_name: str | None
+    build_tls_secret_name: str | None
     commit_info: CommitInfo
     image_name: str
     image_tag: str
     build_env: dict[str, str]
     build_secret_env: dict[str, str]
     build_template_vars: dict[str, str]
+    build_location: BuildLocation | None
 
 
 def make_deployment_vars(
@@ -162,20 +165,34 @@ def make_deployment_vars(
     slug: str,
     commit_info: CommitInfo,
     build_settings: BuildSettings,
+    build_location: BuildLocation | None = None,
 ) -> DeploymentVars:
     image_name, image_tag = _split_image_name_tag(build_settings.image)
+    build_template_vars = settings.build_template_vars | build_settings.template_vars
     return DeploymentVars(
         mode=mode,
         namespace=settings.build_namespace,
         build_name=build_name,
         build_slug=slug,
         build_domain=settings.build_domain,
+        build_ingress_class_name=(
+            build_template_vars.get("ingressClassName")
+            or settings.build_ingress_class_name
+        ),
+        build_tls_secret_name=(
+            build_template_vars.get("tlsSecretName") or settings.build_tls_secret_name
+        ),
         commit_info=commit_info,
         image_name=image_name,
         image_tag=image_tag,
-        build_env=settings.build_env | build_settings.env,
+        build_env=(
+            settings.build_env
+            | build_settings.env
+            | (build_location.env if build_location else {})
+        ),
         build_secret_env=settings.build_secret_env | build_settings.secret_env,
-        build_template_vars=settings.build_template_vars | build_settings.template_vars,
+        build_template_vars=build_template_vars,
+        build_location=build_location,
     )
 
 

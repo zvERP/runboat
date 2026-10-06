@@ -48,6 +48,7 @@ class Build(BaseModel):
     desired_replicas: int
     last_scaled: datetime.datetime
     created: datetime.datetime
+    location: str | None = None
 
     def __str__(self) -> str:
         return f"{self.slug} ({self.name})"
@@ -63,6 +64,7 @@ class Build(BaseModel):
             and self.init_status == other.init_status
             and self.desired_replicas == other.desired_replicas
             and self.last_scaled == other.last_scaled
+            and self.location == other.location
         )
 
     @classmethod
@@ -90,6 +92,7 @@ class Build(BaseModel):
             last_scaled=deployment.metadata.annotations.get("runboat/last-scaled")
             or deployment.metadata.creation_timestamp,
             created=deployment.metadata.creation_timestamp,
+            location=deployment.metadata.annotations.get("runboat/location") or None,
         )
 
     @classmethod
@@ -132,7 +135,7 @@ class Build(BaseModel):
 
     @property
     def deploy_link(self) -> str:
-        return f"http://{self.slug}.{settings.build_domain}"
+        return f"{settings.build_scheme}://{self.slug}.{settings.build_domain}"
 
     @property
     def deploy_link_mailhog(self) -> str:
@@ -178,7 +181,12 @@ class Build(BaseModel):
 
     @classmethod
     async def _deploy(
-        cls, commit_info: CommitInfo, name: str, slug: str, job_kind: k8s.DeploymentMode
+        cls,
+        commit_info: CommitInfo,
+        name: str,
+        slug: str,
+        job_kind: k8s.DeploymentMode,
+        location_name: str | None = None,
     ) -> None:
         """Internal method to prepare for and handle a k8s.deploy()."""
         build_settings = settings.get_build_settings(
@@ -193,6 +201,7 @@ class Build(BaseModel):
             slug,
             commit_info,
             build_settings,
+            settings.get_build_location(location_name),
         )
         await k8s.deploy(kubefiles_path, deployment_vars)
 
@@ -201,9 +210,14 @@ class Build(BaseModel):
         """Deploy a build, without starting it."""
         name = f"b{uuid.uuid4()}"
         slug = cls.make_slug(commit_info)
+        location = settings.select_build_location(name)
         _logger.info(f"Deploying {slug} ({name}).")
         await cls._deploy(
-            commit_info, name, slug, job_kind=k8s.DeploymentMode.deployment
+            commit_info,
+            name,
+            slug,
+            job_kind=k8s.DeploymentMode.deployment,
+            location_name=location.name if location else None,
         )
         await github.notify_status(
             commit_info.repo,
@@ -223,6 +237,7 @@ class Build(BaseModel):
             self.name,
             self.slug,
             job_kind=k8s.DeploymentMode.start,
+            location_name=self.location,
         )
         await self._patch(desired_replicas=1)
 
@@ -237,6 +252,7 @@ class Build(BaseModel):
             self.name,
             self.slug,
             job_kind=k8s.DeploymentMode.stop,
+            location_name=self.location,
         )
 
     async def undeploy(self) -> None:
@@ -257,6 +273,7 @@ class Build(BaseModel):
             self.name,
             self.slug,
             job_kind=k8s.DeploymentMode.deployment,
+            location_name=self.location,
         )
         await github.notify_status(
             self.commit_info.repo,
@@ -275,6 +292,7 @@ class Build(BaseModel):
             self.name,
             self.slug,
             job_kind=k8s.DeploymentMode.initialize,
+            location_name=self.location,
         )
 
     async def _delete_deployment_resources(self) -> None:
@@ -297,7 +315,11 @@ class Build(BaseModel):
         # from job events.
         _logger.info(f"Deploying cleanup job for {self}.")
         await self._deploy(
-            self.commit_info, self.name, self.slug, job_kind=k8s.DeploymentMode.cleanup
+            self.commit_info,
+            self.name,
+            self.slug,
+            job_kind=k8s.DeploymentMode.cleanup,
+            location_name=self.location,
         )
 
     async def on_initialize_started(self) -> None:
@@ -323,6 +345,7 @@ class Build(BaseModel):
             self.name,
             self.slug,
             job_kind=k8s.DeploymentMode.stop,
+            location_name=self.location,
         )
         if await self._patch(init_status=BuildInitStatus.succeeded):
             await github.notify_status(
@@ -343,6 +366,7 @@ class Build(BaseModel):
             self.name,
             self.slug,
             job_kind=k8s.DeploymentMode.stop,
+            location_name=self.location,
         )
         if await self._patch(init_status=BuildInitStatus.failed, desired_replicas=0):
             await github.notify_status(

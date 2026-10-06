@@ -1,9 +1,12 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pytest
+
 from runboat.db import BuildsDb, SortOrder
 from runboat.github import CommitInfo
 from runboat.models import Build, BuildInitStatus, BuildStatus, Repo
+from runboat.settings import settings
 
 
 def _make_build(
@@ -16,6 +19,7 @@ def _make_build(
     pr: int | None = None,
     last_scaled: datetime.datetime | None = None,
     created: datetime.datetime | None = None,
+    location: str | None = None,
 ) -> Build:
     name = name or "build-a"
     return Build(
@@ -32,7 +36,16 @@ def _make_build(
         desired_replicas=0,
         last_scaled=last_scaled or datetime.datetime(2021, 10, 1, 12, 0, 0),
         created=created or datetime.datetime(2021, 10, 1, 11, 0, 0),
+        location=location,
     )
+
+
+def test_deploy_links_use_configured_scheme(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "build_scheme", "https")
+    build = _make_build()
+
+    assert build.deploy_link.startswith("https://")
+    assert build.deploy_link_mailhog.startswith("http://")
 
 
 def test_add() -> None:
@@ -46,6 +59,15 @@ def test_add() -> None:
     listener.on_build_event.assert_not_called()
     db.add(_make_build(status=BuildStatus.failed))
     listener.on_build_event.assert_called()
+
+
+def test_location_is_preserved_in_db() -> None:
+    db = BuildsDb()
+    db.add(_make_build(location="nbg1"))
+
+    build = db.get("build-a")
+    assert build is not None
+    assert build.location == "nbg1"
 
 
 def test_remove() -> None:

@@ -11,6 +11,10 @@ spec:
         runboat/job-kind: initialize
     spec:
       enableServiceLinks: false
+      tolerations:
+        - key: "runboat"
+          operator: "Exists"
+          effect: "NoSchedule"
       containers:
         - name: initialize
           image: odoo

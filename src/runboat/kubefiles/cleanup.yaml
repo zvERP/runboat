@@ -10,10 +10,14 @@ spec:
       labels:
         runboat/job-kind: cleanup
     spec:
+      tolerations:
+        - key: "runboat"
+          operator: "Exists"
+          effect: "NoSchedule"
       enableServiceLinks: false
       containers:
         - name: cleanup
-          image: postgres
+          image: postgres:14
           volumeMounts:
             - name: runboat-scripts
               mountPath: /runboat

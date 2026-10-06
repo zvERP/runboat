@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from runboat.exceptions import RepoOrBranchNotSupported
-from runboat.settings import BuildSettings, settings
+from runboat.settings import BuildLocation, BuildSettings, settings
 
 
 def test_get_build_settings() -> None:
@@ -23,3 +23,20 @@ def test_get_build_settings() -> None:
             kubefiles_path=Path("/tmp"),
         )
     ]
+
+
+def test_select_build_location_is_stable(monkeypatch: pytest.MonkeyPatch) -> None:
+    locations = [
+        BuildLocation(
+            name=name,
+            node_selector={"topology.kubernetes.io/zone": name},
+            env={"PGHOST": f"postgres-{name}"},
+        )
+        for name in ("nbg1", "fsn1", "hel1")
+    ]
+    monkeypatch.setattr(settings, "build_locations", locations)
+
+    selected = settings.select_build_location("b123")
+    assert selected is not None
+    assert settings.select_build_location("b123") == selected
+    assert settings.get_build_location(selected.name) == selected

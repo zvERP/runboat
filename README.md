@@ -100,6 +100,38 @@ database and the kubernetes cluster:
 Note that you can deploy Runboat itself as well Postgres outside or inside the
 kubernetes cluster, or even a different one, depending on your taste.
 
+### PostgreSQL locations
+
+Runboat can distribute builds across several scheduling domains, each with its own
+PostgreSQL endpoint. Configure `RUNBOAT_BUILD_LOCATIONS` with a location name, a node
+selector, the corresponding `PGHOST`, and an optional integer weight:
+
+```json
+[
+  {
+    "name": "nbg1",
+    "node_selector": {"topology.kubernetes.io/zone": "nbg1"},
+    "env": {"PGHOST": "postgres-nbg1.runboat-builds-db.svc.cluster.local"},
+    "weight": 1
+  }
+]
+```
+
+New builds are assigned using a stable weighted hash. The selected location is stored
+in the Deployment's `runboat/location` annotation and reused for initialize, start,
+stop, redeploy, and cleanup operations. Existing builds without that annotation retain
+the legacy global `PGHOST` behaviour when one is configured. For a clean migration,
+remove the old builds first and omit `PGHOST` from `RUNBOAT_BUILD_ENV`; every new build
+will then require an assigned location.
+
+An example with one containerized PostgreSQL per location and strict-local Longhorn
+storage is provided in
+[`deploy/runboat-postgres`](./deploy/runboat-postgres).
+
+Every Odoo Ingress receives the configured ingress class and wildcard TLS Secret
+automatically. The defaults are `nginx` and `wildcard-runboat-tls`; they can be changed
+with `RUNBOAT_BUILD_INGRESS_CLASS_NAME` and `RUNBOAT_BUILD_TLS_SECRET_NAME`.
+
 ## Kubernetes resources
 
 All resources to be deployed in kubernetes for a build are in
@@ -134,7 +166,8 @@ actually deploy. It expects the following to hold true:
   - `runboat/pr`: the pull request number if this build is for a pull request;
   - `runboat/git-commit`: the commit sha.
 
-- the home page of a running build is exposed at `http://{build_slug}.{build_domain}`.
+- the home page of a running build is exposed at
+  `{build_scheme}://{build_slug}.{build_domain}`.
 
 During the lifecycle of a build, the controller does the following on the deployed
 resources:

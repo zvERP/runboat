@@ -43,6 +43,7 @@ class Build(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
+    location: str | None
     commit_info: github.CommitInfo
     deploy_link: str
     deploy_link_mailhog: str

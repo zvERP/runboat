@@ -27,6 +27,9 @@ commonAnnotations:
   runboat/target-branch: "{{ commit_info.target_branch }}"
   runboat/pr: "{{ commit_info.pr if commit_info.pr else '' }}"
   runboat/git-commit: "{{ commit_info.git_commit }}"
+  {%- if build_location %}
+  runboat/location: "{{ build_location.name }}"
+  {%- endif %}
 
 images:
   - name: odoo
@@ -64,6 +67,27 @@ generatorOptions:
   disableNameSuffixHash: true
 
 patches:
+  {%- if build_location %}
+  - target:
+      kind: Deployment
+      name: odoo
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          {%- for key, value in build_location.node_selector.items() %}
+          "{{ key }}": "{{ value }}"
+          {%- endfor %}
+  - target:
+      kind: Job
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          {%- for key, value in build_location.node_selector.items() %}
+          "{{ key }}": "{{ value }}"
+          {%- endfor %}
+  {%- endif %}
   - target:
       kind: PersistentVolumeClaim
       name: data
@@ -78,6 +102,19 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: {{ build_slug }}.{{ build_domain }}
+      {%- if build_ingress_class_name %}
+      - op: add
+        path: /spec/ingressClassName
+        value: {{ build_ingress_class_name }}
+      {%- endif %}
+      {%- if build_tls_secret_name %}
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - {{ build_slug }}.{{ build_domain }}
+            secretName: {{ build_tls_secret_name }}
+      {%- endif %}
   - target:
       kind: Ingress
       name: mailhog

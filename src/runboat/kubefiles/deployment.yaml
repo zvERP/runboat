@@ -18,6 +18,10 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: odoo
     spec:
+      tolerations:
+        - key: "runboat"
+          operator: "Exists"
+          effect: "NoSchedule"
       # let Odoo stop gracefully to disconnect from postgres
       terminationGracePeriodSeconds: 10
       enableServiceLinks: false

@@ -1,0 +1,27 @@
+# UI, API and GitHub webhook (https://runboat.zverp.com/webhooks/github).
+# Note: the *.runboat.zverp.com wildcard does not cover runboat.zverp.com itself,
+# so this host needs its own certificate in runboat-tls.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: runboat
+  namespace: runboat-controller
+  # annotations:
+  #   cert-manager.io/cluster-issuer: letsencrypt  # if cert-manager is installed
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - runboat.zverp.com
+      secretName: runboat-tls
+  rules:
+    - host: runboat.zverp.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: runboat
+                port:
+                  name: http

@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - storageclass.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+# runboat.env is not committed: copy runboat.env.sample and fill it in.
+# Format is KEY=VALUE per line, WITHOUT quotes around values.
+secretGenerator:
+  - name: runboat
+    namespace: runboat-controller
+    envs:
+      - runboat.env
+
+generatorOptions:
+  disableNameSuffixHash: false  # roll the controller when the config changes

@@ -1,33 +1,20 @@
-# Runboat PostgreSQL locations
+# Runboat PostgreSQL
 
-This package deploys one PostgreSQL 14 StatefulSet in each Runboat location:
-`nbg1`, `fsn1`, and `hel1`. Each instance uses a single strict-local Longhorn
-replica. This removes inter-datacenter storage latency, at the cost of the database
-being unavailable if its node or local Longhorn replica is lost.
+A single PostgreSQL 14 StatefulSet in the `runboat-builds-db` namespace, used by all
+builds (which run in the `runboat` namespace). Its volume is a strict-local Longhorn
+volume with one replica, so the pod is pinned to one node with
+`kubernetes.io/hostname`: the database is unavailable if that node is lost, which is
+acceptable for disposable builds.
 
-The nodes must have the corresponding `topology.kubernetes.io/zone` labels.
-Builds run in the `runboat` namespace, while these PostgreSQL instances run in
-`runboat-builds-db`.
-
-Create the database password without committing it:
-
-```bash
-kubectl create namespace runboat-builds-db --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n runboat-builds-db create secret generic runboat-postgres \
-  --from-literal=POSTGRES_USER=runboat-build \
-  --from-literal=POSTGRES_PASSWORD='replace-me'
-```
-
-Use that same password as `PGPASSWORD` in `RUNBOAT_BUILD_SECRET_ENV`, then deploy:
+1. The node is set in `postgres.yaml` (`kubernetes.io/hostname: dedicado-ovh-gra2`,
+   a control-plane node, hence the control-plane toleration).
+2. `cp postgres.env.sample postgres.env` and set a password. Use the same password
+   as `PGPASSWORD` in `RUNBOAT_BUILD_SECRET_ENV`.
+3. Deploy, either on its own or together with the controller from `deploy/`:
 
 ```bash
 kubectl apply -k deploy/runboat-postgres
-kubectl -n runboat-builds-db rollout status statefulset/postgres-nbg1
-kubectl -n runboat-builds-db rollout status statefulset/postgres-fsn1
-kubectl -n runboat-builds-db rollout status statefulset/postgres-hel1
+kubectl -n runboat-builds-db rollout status statefulset/postgres
 ```
 
-The Runboat location configuration is shown in the repository `.env.sample`. New
-builds are distributed with a stable weighted hash and receive both the local
-`PGHOST` and a matching node selector. Existing builds without a `runboat/location`
-annotation continue using the global database configuration.
+Builds reach it at `postgres.runboat-builds-db.svc.cluster.local:5432`.

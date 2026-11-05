@@ -22,6 +22,10 @@ spec:
         - key: "runboat"
           operator: "Exists"
           effect: "NoSchedule"
+        # Single-node cluster: builds run on the control-plane node.
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
       # let Odoo stop gracefully to disconnect from postgres
       terminationGracePeriodSeconds: 10
       enableServiceLinks: false
@@ -44,24 +48,31 @@ spec:
           ports:
             - name: web
               containerPort: 8069
+          # Ready as soon as Odoo listens; liveness only kicks in after startup, so a
+          # slow first start is never killed.
+          startupProbe:
+            tcpSocket:
+              port: 8069
+            periodSeconds: 1
+            failureThreshold: 180
           readinessProbe:
             tcpSocket:
               port: 8069
-            initialDelaySeconds: 2
             periodSeconds: 2
           livenessProbe:
             tcpSocket:
               port: 8069
-            initialDelaySeconds: 30
             periodSeconds: 30
           args: ["bash", "/runboat/runboat-start.sh"]
+          # Reserve almost nothing (builds are idle most of the time), but allow a
+          # large CPU burst so startup and first page loads are fast.
           resources:
-            limits:
-              cpu: 800m
-              memory: 1Gi
             requests:
-              cpu: 50m
-              memory: 100Mi
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: "2"
+              memory: 1536Mi
         - name: mailhog
           image: mailhog
           env:
@@ -79,20 +90,19 @@ spec:
           readinessProbe:
             tcpSocket:
               port: 8025
-            initialDelaySeconds: 2
             periodSeconds: 2
           livenessProbe:
             tcpSocket:
               port: 8025
-            initialDelaySeconds: 30
+            initialDelaySeconds: 10
             periodSeconds: 30
           resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
             limits:
               cpu: 100m
-              memory: 200Mi
-            requests:
-              cpu: 50m
-              memory: 100Mi
+              memory: 64Mi
       volumes:
         - name: runboat-scripts
           configMap:

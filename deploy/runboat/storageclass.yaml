@@ -1,0 +1,15 @@
+# Volumes of the builds (template var storageClassName). Single node, so one replica,
+# strict-local for disk speed, and deleted together with the build.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-runboat
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  dataLocality: strict-local
+  fsType: ext4
+  numberOfReplicas: "1"
+  staleReplicaTimeout: "30"

@@ -124,9 +124,9 @@ the legacy global `PGHOST` behaviour when one is configured. For a clean migrati
 remove the old builds first and omit `PGHOST` from `RUNBOAT_BUILD_ENV`; every new build
 will then require an assigned location.
 
-An example with one containerized PostgreSQL per location and strict-local Longhorn
-storage is provided in
-[`deploy/runboat-postgres`](./deploy/runboat-postgres).
+Locations are optional. The bundled
+[`deploy/runboat-postgres`](./deploy/runboat-postgres) deploys a single PostgreSQL
+pinned to one node, used through a global `PGHOST` without `RUNBOAT_BUILD_LOCATIONS`.
 
 Every Odoo Ingress receives the configured ingress class and wildcard TLS Secret
 automatically. The defaults are `nginx` and `wildcard-runboat-tls`; they can be changed
@@ -206,6 +206,23 @@ RUNBOAT_REPOS=[{"repo": "^oca/.*", "branch": "^15.0$", "builds": [{"image": "ghc
 - api documentation is at `http://localhost:8000/docs`
 - run tests with `pytest` (environment variables used in tests are declared in
   `.env.test`)
+
+## Running in kubernetes (self-contained)
+
+[`deploy/`](./deploy) contains everything: the builds PostgreSQL
+([`deploy/runboat-postgres`](./deploy/runboat-postgres)) and the controller running as
+a pod with an in-cluster service account ([`deploy/runboat`](./deploy/runboat):
+namespaces, RBAC limited to the `runboat` builds namespace, Deployment, Service,
+Ingress).
+
+```bash
+cp deploy/runboat/runboat.env.sample deploy/runboat/runboat.env          # no quotes
+cp deploy/runboat-postgres/postgres.env.sample deploy/runboat-postgres/postgres.env
+# database node: kubernetes.io/hostname in deploy/runboat-postgres/postgres.yaml
+kubectl apply -k deploy
+```
+
+The image `ghcr.io/zverp/runboat:main` is built by CI on pushes to `main`.
 
 ## Running in production
 

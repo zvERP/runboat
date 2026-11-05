@@ -8,3 +8,14 @@ resources:
   - storageclass.yaml
   - postgres.yaml
   - networkpolicy.yaml
+
+# postgres.env is not committed: copy postgres.env.sample and set the password.
+# It must match PGPASSWORD in RUNBOAT_BUILD_SECRET_ENV (deploy/runboat/runboat.env).
+secretGenerator:
+  - name: runboat-postgres
+    envs:
+      - postgres.env
+
+generatorOptions:
+  disableNameSuffixHash: true
+

@@ -14,6 +14,10 @@ spec:
         - key: "runboat"
           operator: "Exists"
           effect: "NoSchedule"
+        # Single-node cluster: builds run on the control-plane node.
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
       enableServiceLinks: false
       containers:
         - name: cleanup
@@ -27,6 +31,13 @@ spec:
             - configMapRef:
                 name: odooenv
           args: ["bash", "/runboat/runboat-cleanup.sh"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
       volumes:
         - name: runboat-scripts
           configMap:

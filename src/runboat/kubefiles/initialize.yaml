@@ -15,6 +15,10 @@ spec:
         - key: "runboat"
           operator: "Exists"
           effect: "NoSchedule"
+        # Single-node cluster: builds run on the control-plane node.
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
       containers:
         - name: initialize
           image: odoo
@@ -29,13 +33,15 @@ spec:
             - configMapRef:
                 name: odooenv
           args: ["bash", "/runboat/runboat-initialize.sh"]
+          # Heaviest step (pip install + module install). Small request so jobs get
+          # scheduled immediately, high limit so they finish fast.
           resources:
-            limits:
-              cpu: 1000m
-              memory: 1Gi
             requests:
-              cpu: 1000m
-              memory: 1Gi
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
       volumes:
         - name: runboat-scripts
           configMap:

@@ -1,0 +1,11 @@
+# Where the runboat controller runs.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: runboat-controller
+---
+# Where the builds (Odoo deployments, jobs, pvcs, ingresses) are created.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: runboat

@@ -1,0 +1,104 @@
+## main...origin/main
+ M src/runboat/kubefiles/cleanup.yaml
+ M src/runboat/kubefiles/deployment.yaml
+ M src/runboat/kubefiles/ingress_odoo.yaml
+ M src/runboat/kubefiles/initialize.yaml
+ M src/runboat/kubefiles/pvc.yaml
+?? git.txt
+origin	https://github.com/zverp/runboat.git (fetch)
+origin	https://github.com/zverp/runboat.git (push)
+upstream	https://github.com/sbidoul/runboat.git (fetch)
+upstream	https://github.com/sbidoul/runboat.git (push)
+* main                                                                    7237e59 [origin/main] Merge pull request #151 from Corentvn/fix/migrate-time-ago-to-relative-time
+  remotes/origin/main                                                     7237e59 Merge pull request #151 from Corentvn/fix/migrate-time-ago-to-relative-time
+  remotes/upstream/HEAD                                                   -> upstream/main
+  remotes/upstream/dependabot/github_actions/codecov/codecov-action-6     fdf36b1 Bump codecov/codecov-action from 5 to 6
+  remotes/upstream/dependabot/github_actions/docker/build-push-action-7   b7b71a1 Bump docker/build-push-action from 6 to 7
+  remotes/upstream/dependabot/github_actions/docker/login-action-4        6520fbd Bump docker/login-action from 3 to 4
+  remotes/upstream/dependabot/github_actions/docker/metadata-action-6     be371ff Bump docker/metadata-action from 5 to 6
+  remotes/upstream/dependabot/github_actions/docker/setup-buildx-action-4 613345a Bump docker/setup-buildx-action from 3 to 4
+  remotes/upstream/http-interface                                         b33e764 Add --http-interface=0.0.0.0
+  remotes/upstream/main                                                   7237e59 Merge pull request #151 from Corentvn/fix/migrate-time-ago-to-relative-time
+  remotes/upstream/pre-commit-ci-update-config                            dd098a5 [pre-commit.ci] pre-commit autoupdate
+* dd098a5 (upstream/pre-commit-ci-update-config) [pre-commit.ci] pre-commit autoupdate
+| * b33e764 (upstream/http-interface) Add --http-interface=0.0.0.0
+|/  
+*   7237e59 (HEAD -> main, upstream/main, upstream/HEAD, origin/main) Merge pull request #151 from Corentvn/fix/migrate-time-ago-to-relative-time
+|\  
+| * 2aff751 [FIX] webui-templates: update time-elements library
+|/  
+| * fdf36b1 (upstream/dependabot/github_actions/codecov/codecov-action-6) Bump codecov/codecov-action from 5 to 6
+|/  
+| * 6520fbd (upstream/dependabot/github_actions/docker/login-action-4) Bump docker/login-action from 3 to 4
+|/  
+| * 613345a (upstream/dependabot/github_actions/docker/setup-buildx-action-4) Bump docker/setup-buildx-action from 3 to 4
+|/  
+| * be371ff (upstream/dependabot/github_actions/docker/metadata-action-6) Bump docker/metadata-action from 5 to 6
+|/  
+| * b7b71a1 (upstream/dependabot/github_actions/docker/build-push-action-7) Bump docker/build-push-action from 6 to 7
+|/  
+*   abc930f (tag: v2.0.0, tag: v2) Merge pull request #143 from sbidoul/harden-ci
+|\  
+| * 9717805 Harden ci workflow
+|/  
+*   2ddd7c3 Merge pull request #142 from sbidoul/rm-commonLabels
+|\  
+| * d25789c Stop using deprecated kustomize commonLabels
+|/  
+*   ab984e1 Merge pull request #141 from sbidoul/add-start-stop-modes
+|\  
+| * fdfd70b Add assert
+| * 4412618 Add start and stop deployment modes
+* | 68ee268 (tag: v1.0.0) Fix image push target
+* | c6c792a Build image with semver tags
+|/  
+*   d2b90e5 Merge pull request #130 from sbidoul/pre-commit-ci-update-config
+|\  
+| * a8ec2e1 [pre-commit.ci] pre-commit autoupdate
+* |   af3f3dd Merge pull request #140 from sbidoul/dependabot/github_actions/actions/checkout-6
+|\ \  
+| |/  
+|/|   
+| * 7a99c5b Bump actions/checkout from 5 to 6
+|/  
+*   5d84b88 Merge pull request #139 from sbidoul/update-deps-sbi
+|\  
+| * 52dbb98 Upgrade dependencies
+* |   a965740 Merge pull request #138 from sbidoul/enable-with-demo
+|\ \  
+| |/  
+|/|   
+| * 276aa3e Load demo data in Odoo 19+
+* |   8d7a80a Merge pull request #133 from sbidoul/dependabot/github_actions/actions/setup-python-6
+|\ \  
+| * | 22dd716 Bump actions/setup-python from 4 to 6
+|/ /  
+* |   05051e7 Merge pull request #134 from sbidoul/dependabot/github_actions/codecov/codecov-action-5
+|\ \  
+| * | c9c1b03 Bump codecov/codecov-action from 1 to 5
+| |/  
+* |   e5b6c4e Merge pull request #135 from sbidoul/dependabot/github_actions/docker/build-push-action-6
+|\ \  
+| * | 8484a2d Bump docker/build-push-action from 5 to 6
+| |/  
+* |   0325afd Merge pull request #136 from sbidoul/dependabot/github_actions/actions/checkout-5
+|\ \  
+| |/  
+|/|   
+| * ab95fa4 Bump actions/checkout from 4 to 5
+|/  
+* 5c302a4 Autoupdate GItHub actions
+* fc4dc2a pre-commit refresh
+*   7e16051 Merge pull request #128 from sbidoul/make-cleanup-optional
+|\  
+| * 1529645 Make cleanup job optional via a global setting
+|/  
+*   afa10b5 Merge pull request #125 from sbidoul/configurable-delete
+|\  
+| * 8398169 Make the list of resources to delete configurable
+ src/runboat/kubefiles/cleanup.yaml      |  4 ++++
+ src/runboat/kubefiles/deployment.yaml   | 20 ++++++++++++--------
+ src/runboat/kubefiles/ingress_odoo.yaml |  3 +++
+ src/runboat/kubefiles/initialize.yaml   | 12 ++++++++----
+ src/runboat/kubefiles/pvc.yaml          |  4 +---
+ 5 files changed, 28 insertions(+), 15 deletions(-)

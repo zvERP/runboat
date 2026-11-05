@@ -45,7 +45,8 @@ def test_deploy_links_use_configured_scheme(monkeypatch: pytest.MonkeyPatch) -> 
     build = _make_build()
 
     assert build.deploy_link.startswith("https://")
-    assert build.deploy_link_mailhog.startswith("http://")
+    assert build.deploy_link_mailhog.startswith("https://")
+    assert build.deploy_link_mailhog.endswith("-mail.runboat.odoo-community.org")
 
 
 def test_add() -> None:

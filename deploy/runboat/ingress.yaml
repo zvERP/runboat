@@ -1,13 +1,15 @@
 # UI, API and GitHub webhook (https://runboat.zverp.com/webhooks/github).
-# Note: the *.runboat.zverp.com wildcard does not cover runboat.zverp.com itself,
-# so this host needs its own certificate in runboat-tls.
+# The *.runboat.zverp.com wildcard (secret wildcard-runboat-tls in the builds
+# namespace) does not cover runboat.zverp.com itself, so cert-manager issues a
+# dedicated HTTP-01 certificate for this host into runboat-tls.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: runboat
   namespace: runboat-controller
-  # annotations:
-  #   cert-manager.io/cluster-issuer: letsencrypt  # if cert-manager is installed
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
 spec:
   ingressClassName: nginx
   tls:

@@ -139,7 +139,8 @@ class Build(BaseModel):
 
     @property
     def deploy_link_mailhog(self) -> str:
-        return f"http://{self.slug}.mail.{settings.build_domain}"
+        # Single-level subdomain, so it is covered by the *.build_domain wildcard.
+        return f"{settings.build_scheme}://{self.slug}-mail.{settings.build_domain}"
 
     @property
     def repo_target_branch_link(self) -> str:

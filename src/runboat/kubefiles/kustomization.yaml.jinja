@@ -121,4 +121,17 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: {{ build_slug }}.mail.{{ build_domain }}
+        value: {{ build_slug }}-mail.{{ build_domain }}
+      {%- if build_ingress_class_name %}
+      - op: add
+        path: /spec/ingressClassName
+        value: {{ build_ingress_class_name }}
+      {%- endif %}
+      {%- if build_tls_secret_name %}
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - {{ build_slug }}-mail.{{ build_domain }}
+            secretName: {{ build_tls_secret_name }}
+      {%- endif %}

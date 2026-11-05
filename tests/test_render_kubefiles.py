@@ -86,7 +86,16 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: build-slug.mail.runboat.odoo-community.org
+        value: build-slug-mail.runboat.odoo-community.org
+      - op: add
+        path: /spec/ingressClassName
+        value: nginx
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - build-slug-mail.runboat.odoo-community.org
+            secretName: wildcard-runboat-tls
 """
 
 
@@ -137,6 +146,7 @@ def test_render_kubefiles_with_tls() -> None:
         assert "path: /spec/ingressClassName\n        value: traefik" in kustomization
         assert "- build-slug.runboat.odoo-community.org" in kustomization
         assert "secretName: custom-runboat-tls" in kustomization
+        assert "- build-slug-mail.runboat.odoo-community.org" in kustomization
 
 
 def test_render_kubefiles_with_build_location() -> None:

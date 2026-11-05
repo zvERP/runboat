@@ -17,6 +17,11 @@ spec:
         app.kubernetes.io/name: runboat
     spec:
       serviceAccountName: runboat
+      # ghcr.io/zverp/runboat is private. Create once with:
+      #   kubectl -n runboat-controller create secret docker-registry ghcr-pull \
+      #     --docker-server=ghcr.io --docker-username=<user> --docker-password=<PAT read:packages>
+      imagePullSecrets:
+        - name: ghcr-pull
       tolerations:
         # Single-node cluster: runs on the control-plane node.
         - key: "node-role.kubernetes.io/control-plane"

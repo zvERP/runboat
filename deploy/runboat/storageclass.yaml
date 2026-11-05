@@ -1,5 +1,6 @@
-# Volumes of the builds (template var storageClassName). Single node, so one replica,
-# strict-local for disk speed, and deleted together with the build.
+# Volumes of the builds (template var storageClassName). Matches the class already
+# present in the cluster (StorageClass parameters are immutable): one replica,
+# deleted together with the build.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -7,9 +8,10 @@ metadata:
 provisioner: driver.longhorn.io
 allowVolumeExpansion: true
 reclaimPolicy: Delete
-volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate
 parameters:
-  dataLocality: strict-local
+  dataLocality: best-effort
   fsType: ext4
   numberOfReplicas: "1"
+  recurringJobSelector: "[]"
   staleReplicaTimeout: "30"
